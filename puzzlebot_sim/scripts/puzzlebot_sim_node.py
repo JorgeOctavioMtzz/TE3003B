@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import rospy
-import math
 from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Float32
+import math
 
 class PuzzlebotSimulator:
     def __init__(self):
@@ -27,21 +27,30 @@ class PuzzlebotSimulator:
     def cmd_vel_callback(self, msg):
         current_time = rospy.Time.now()
         dt = (current_time - self.last_time).to_sec()
+
+        vx = msg.linear.x
         wz = msg.angular.z
-        vx = msg.linear.x 
-        vy = msg.linear.y
-        
 
-        wr = ((2 * (vx+vy) + wz * self.wheelbase) / (2 * self.wheel_radius))
-        wl = ((2 * (vx+vy) - wz * self.wheelbase) / (2 * self.wheel_radius))
+        # Calculate the angular velocities for each wheel
+        vr = vx + (self.wheelbase / 2) * wz
+        vl = vx - (self.wheelbase / 2) * wz
 
-        self.pose.pose.position.x += vx * dt
-        self.pose.pose.position.y += vy * dt
-        self.pose.pose.orientation.z += wz * dt
+        wr = vr / self.wheel_radius
+        wl = vl / self.wheel_radius
+
+        # Update robot pose
+        # Update orientation to integrate around z-axis
+        theta = self.pose.pose.orientation.z + wz * dt
+        self.pose.pose.orientation.z = theta
+
+        # Update position with respect to the orientation
+        self.pose.pose.position.x += vx * math.cos(theta) * dt
+        self.pose.pose.position.y += vx * math.sin(theta) * dt
 
         self.wr.data = wr
         self.wl.data = wl
 
+        # Publish new states
         self.pose_pub.publish(self.pose)
         self.wr_pub.publish(self.wr)
         self.wl_pub.publish(self.wl)
