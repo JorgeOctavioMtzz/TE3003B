@@ -25,7 +25,10 @@ class PuzzlebotSimulator:
 
     def cmd_vel_callback(self, msg):
         current_time = rospy.Time.now()
-        dt = 1/100
+        dt = (current_time - self.last_time).to_sec()
+	#dt = 1/100
+        if dt == 0:
+            return
 
         vx = msg.linear.x
         wz = msg.angular.z

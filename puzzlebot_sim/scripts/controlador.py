@@ -11,16 +11,16 @@ class ControllerNode:
         rospy.init_node('controller')
 
         # Variables para la posición deseada
-        self.xd = 1.0
-        self.yd = 0.0
+        self.xd = 3.0
+        self.yd = 1.0
         self.thd = 0.0
 
         # Constantes del controlador P
-        self.Kp_linear = 0.5
-        self.Kp_angular = 1.0
+        self.Kp_linear = 0.3
+        self.Kp_angular = 1
 
         # Umbral para considerar que ha llegado al punto deseado
-        self.position_tolerance = 0.1
+        self.position_tolerance = 0.01
 
         # Subscripción al odómetro para obtener la posición actual
         rospy.Subscriber("/odom", Odometry, self.odom_callback)
@@ -41,15 +41,20 @@ class ControllerNode:
         el = math.sqrt(ex**2 + ey**2)
 
         # Detener el robot si está cerca del punto deseado
-        if el < self.position_tolerance:
+        if abs(el) < self.position_tolerance:
             twist = Twist()  # Velocidades nulas
+            twist.linear.x = 0
+            twist.angular.z = 0
+            el=0
         else:
             # Calcular el ángulo hacia la posición deseada
             thd = math.atan2(ey, ex)
 
+            # Calcular el error angular
+            angular_error = self.Kp_angular * (thd - th)
+
             # Calcular las velocidades lineal y angular
             linear_error = self.Kp_linear * el
-            angular_error = self.Kp_angular * (thd - th)
 
             # Crear el mensaje de velocidad
             twist = Twist()
@@ -62,6 +67,5 @@ class ControllerNode:
 if __name__ == '__main__':
     node = ControllerNode()
     rospy.spin()
-
 
 
